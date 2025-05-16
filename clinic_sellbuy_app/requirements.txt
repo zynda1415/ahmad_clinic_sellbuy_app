@@ -1,5 +1,5 @@
 streamlit
 pandas
-streamlit-extras
 pytesseract
 Pillow
+streamlit-extras
