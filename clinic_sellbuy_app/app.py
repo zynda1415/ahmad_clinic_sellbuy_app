@@ -45,12 +45,10 @@ else:
     elif section == "Sales":
         st.subheader("📸 Sell Item Manually")
 
-        # Step 1: Take a picture (optional)
         image_data = st.camera_input("📷 Optional: Take a picture of the barcode")
         if image_data:
             st.info("Photo captured! Now enter the barcode manually.")
 
-        # Step 2: Manually enter the barcode
         barcode_value = st.text_input("🔢 Enter barcode number")
 
         item_name = ""
@@ -66,7 +64,6 @@ else:
             else:
                 st.warning("❌ Barcode not found in inventory")
 
-        # Step 3: Sale Form
         with st.form("sale_form_manual"):
             customer = st.text_input("Customer Name", value="walk-in")
             item = st.text_input("Item Name", value=item_name)
@@ -98,7 +95,6 @@ else:
                 df.to_csv(sales_path, index=False)
             st.success("✅ Sale saved successfully!")
 
-        # Step 4: View sales
         sales_path = os.path.join(DATA_PATH, "sales.csv")
         if os.path.exists(sales_path):
             df_sales = pd.read_csv(sales_path)
@@ -108,8 +104,43 @@ else:
 
     # --- PURCHASES PAGE ---
     elif section == "Purchases":
-        st.subheader("📥 Purchase Entries")
-        st.info("Purchasing form coming next...")
+        st.subheader("🧾 Add Purchase Record")
+
+        with st.form("purchase_form"):
+            seller = st.text_input("Seller Name")
+            barcode = st.text_input("Item Barcode")
+            item_name = st.text_input("Item Name")
+            quantity = st.number_input("Quantity", min_value=1)
+            unit_price = st.number_input("Buy Price per Item", min_value=0.0)
+            note = st.text_area("Note (optional)")
+            submit_purchase = st.form_submit_button("💾 Save Purchase")
+
+        if submit_purchase:
+            total = quantity * unit_price
+            purchase = {
+                "Date": date.today().isoformat(),
+                "Seller": seller,
+                "Barcode": barcode,
+                "Item Name": item_name,
+                "Quantity": quantity,
+                "Price": unit_price,
+                "Total": total,
+                "Note": note
+            }
+            purchase_path = os.path.join(DATA_PATH, "purchases.csv")
+            df = pd.DataFrame([purchase])
+            if os.path.exists(purchase_path):
+                df.to_csv(purchase_path, mode='a', header=False, index=False)
+            else:
+                df.to_csv(purchase_path, index=False)
+            st.success("✅ Purchase saved successfully!")
+
+        purchase_path = os.path.join(DATA_PATH, "purchases.csv")
+        if os.path.exists(purchase_path):
+            df_purchase = pd.read_csv(purchase_path)
+            st.dataframe(df_purchase, use_container_width=True)
+        else:
+            st.info("No purchases recorded today.")
 
     # --- SALES RETURN PAGE ---
     elif section == "Sales Returns":
