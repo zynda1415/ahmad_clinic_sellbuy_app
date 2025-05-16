@@ -11,10 +11,10 @@ PASSWORD = "clinic123"
 DATA_PATH = os.path.join("clinic_data", str(date.today()))
 os.makedirs(DATA_PATH, exist_ok=True)
 
-# --- PAGE SETUP ---
+# --- PAGE CONFIG ---
 st.set_page_config(page_title="Clinic POS", layout="wide")
 
-# --- LOGIN SCREEN ---
+# --- LOGIN ---
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -26,13 +26,14 @@ if not st.session_state.authenticated:
         st.success("Login successful!")
     else:
         st.stop()
+
 else:
-    # --- SIDEBAR NAVIGATION ---
+    # ✅ APP AFTER LOGIN
     st.sidebar.title("📁 Menu")
     section = st.sidebar.radio("Go to", ["Dashboard", "Sales", "Purchases", "Sales Returns", "Purchase Returns"])
     st.title(f"📋 {section}")
 
-    # --- DASHBOARD SECTION ---
+    # --- DASHBOARD ---
     if section == "Dashboard":
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("🛒 Sales", "33.6K", "↑ 4.2%")
@@ -41,13 +42,10 @@ else:
         col4.metric("↪️ Purchase Return", "120", "↓ 0.2%")
         style_metric_cards()
 
-    # --- SALES SECTION ---
+    # --- SALES PAGE ---
     elif section == "Sales":
         st.subheader("📸 Sell via Barcode Scan")
-
-        # Step 1: Use phone camera to scan barcode
         image = st.camera_input("📷 Scan item barcode")
-
         barcode_value = ""
         item_name = ""
         price = 0.0
@@ -57,7 +55,6 @@ else:
             barcode_value = pytesseract.image_to_string(img).strip()
             st.success(f"📦 Detected Barcode: `{barcode_value}`")
 
-            # Step 2: Lookup barcode in inventory
             inventory_path = os.path.join(DATA_PATH, "inventory.csv")
             if os.path.exists(inventory_path):
                 df_inventory = pd.read_csv(inventory_path)
@@ -69,7 +66,6 @@ else:
                 else:
                     st.warning("❌ Item not found in inventory")
 
-        # Step 3: Sale Form
         with st.form("sale_form_scan"):
             customer = st.text_input("Customer Name", value="walk-in")
             item = st.text_input("Item Name", value=item_name)
@@ -101,7 +97,6 @@ else:
                 df.to_csv(sales_path, index=False)
             st.success("✅ Sale saved successfully!")
 
-        # Display sales table
         sales_path = os.path.join(DATA_PATH, "sales.csv")
         if os.path.exists(sales_path):
             df_sales = pd.read_csv(sales_path)
@@ -109,17 +104,17 @@ else:
         else:
             st.info("No sales recorded today.")
 
-    # --- PURCHASES SECTION ---
+    # --- PURCHASES PAGE ---
     elif section == "Purchases":
         st.subheader("📥 Purchase Entries")
         st.info("Purchasing form coming next...")
 
-    # --- SALES RETURN SECTION ---
+    # --- SALES RETURN PAGE ---
     elif section == "Sales Returns":
         st.subheader("↩️ Sales Return Records")
         st.info("No return records yet.")
 
-    # --- PURCHASE RETURN SECTION ---
+    # --- PURCHASE RETURN PAGE ---
     elif section == "Purchase Returns":
         st.subheader("↪️ Purchase Return Records")
         st.info("No return records yet.")
