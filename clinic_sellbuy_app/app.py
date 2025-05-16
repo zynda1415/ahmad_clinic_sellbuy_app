@@ -1,9 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-import cv2
-import numpy as np
-from pyzbar.pyzbar import decode
 from datetime import date
 from streamlit_extras.metric_cards import style_metric_cards
 from PIL import Image
@@ -46,22 +43,15 @@ else:
 
     # --- SALES PAGE ---
     elif section == "Sales":
-        st.subheader("📸 Sell via Barcode Photo")
+        st.subheader("📸 Sell Item Manually")
 
-        barcode_value = ""
-        image_data = st.camera_input("📷 Take a picture of the barcode")
+        # Step 1: Take a picture (optional)
+        image_data = st.camera_input("📷 Optional: Take a picture of the barcode")
+        if image_data:
+            st.info("Photo captured! Now enter the barcode manually.")
 
-        if image_data is not None:
-            image = Image.open(image_data).convert("RGB")
-            opencv_image = np.array(image)
-            opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2BGR)
-
-            decoded_objects = decode(opencv_image)
-            if decoded_objects:
-                barcode_value = decoded_objects[0].data.decode("utf-8")
-                st.success(f"📦 Detected Barcode: `{barcode_value}`")
-            else:
-                st.warning("❌ No barcode detected. Try again with better lighting and closer focus.")
+        # Step 2: Manually enter the barcode
+        barcode_value = st.text_input("🔢 Enter barcode number")
 
         item_name = ""
         price = 0.0
@@ -72,11 +62,12 @@ else:
             if not match.empty:
                 item_name = match.iloc[0]["Name"]
                 price = float(match.iloc[0]["Sell Price"])
-                st.info(f"🧾 Found item: **{item_name}** — ${price}")
+                st.success(f"🧾 Found item: **{item_name}** — ${price}")
             else:
                 st.warning("❌ Barcode not found in inventory")
 
-        with st.form("sale_form_scan"):
+        # Step 3: Sale Form
+        with st.form("sale_form_manual"):
             customer = st.text_input("Customer Name", value="walk-in")
             item = st.text_input("Item Name", value=item_name)
             quantity = st.number_input("Quantity", min_value=1, value=1)
@@ -107,6 +98,7 @@ else:
                 df.to_csv(sales_path, index=False)
             st.success("✅ Sale saved successfully!")
 
+        # Step 4: View sales
         sales_path = os.path.join(DATA_PATH, "sales.csv")
         if os.path.exists(sales_path):
             df_sales = pd.read_csv(sales_path)
