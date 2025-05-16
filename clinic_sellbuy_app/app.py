@@ -7,8 +7,10 @@ from PIL import Image
 
 # --- SETTINGS ---
 PASSWORD = "clinic123"
-DATA_PATH = os.path.join("clinic_data", str(date.today()))
-os.makedirs(DATA_PATH, exist_ok=True)
+BASE_PATH = "clinic_data"
+TODAY_PATH = os.path.join(BASE_PATH, str(date.today()))
+INVENTORY_PATH = os.path.join(BASE_PATH, "inventory.csv")
+os.makedirs(TODAY_PATH, exist_ok=True)
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Clinic POS", layout="wide")
@@ -23,12 +25,12 @@ if not st.session_state.authenticated:
     login = st.button("Login")
     if login and pwd == PASSWORD:
         st.session_state.authenticated = True
-        st.experimental_rerun()
+        st.success("✅ Login successful!")
     elif login:
-        st.error("Wrong password")
+        st.error("❌ Wrong password")
     st.stop()
 
-# ✅ MAIN APP
+# --- MAIN APP ---
 st.sidebar.title("📁 Menu")
 section = st.sidebar.radio("Go to", ["Dashboard", "Sales", "Purchases", "Sales Returns", "Purchase Returns"])
 st.title(f"📋 {section}")
@@ -49,11 +51,11 @@ elif section == "Sales":
     if image_data:
         st.info("Photo captured! Now enter the barcode manually.")
     barcode_value = st.text_input("🔢 Enter barcode number")
+
     item_name = ""
     price = 0.0
-    inventory_path = os.path.join(DATA_PATH, "inventory.csv")
-    if barcode_value and os.path.exists(inventory_path):
-        df_inventory = pd.read_csv(inventory_path)
+    if barcode_value and os.path.exists(INVENTORY_PATH):
+        df_inventory = pd.read_csv(INVENTORY_PATH)
         match = df_inventory[df_inventory["Barcode"] == barcode_value]
         if not match.empty:
             item_name = match.iloc[0]["Name"]
@@ -85,7 +87,7 @@ elif section == "Sales":
             "Due": due,
             "Payment Status": "Paid" if due <= 0 else "Unpaid"
         }
-        sales_path = os.path.join(DATA_PATH, "sales.csv")
+        sales_path = os.path.join(TODAY_PATH, "sales.csv")
         df = pd.DataFrame([sale])
         if os.path.exists(sales_path):
             df.to_csv(sales_path, mode='a', header=False, index=False)
@@ -93,7 +95,7 @@ elif section == "Sales":
             df.to_csv(sales_path, index=False)
         st.success("✅ Sale saved successfully!")
 
-    sales_path = os.path.join(DATA_PATH, "sales.csv")
+    sales_path = os.path.join(TODAY_PATH, "sales.csv")
     if os.path.exists(sales_path):
         df_sales = pd.read_csv(sales_path)
         st.dataframe(df_sales, use_container_width=True)
@@ -126,20 +128,18 @@ elif section == "Purchases":
         }
 
         # Save to purchases.csv
-        purchase_path = os.path.join(DATA_PATH, "purchases.csv")
+        purchase_path = os.path.join(TODAY_PATH, "purchases.csv")
         df = pd.DataFrame([purchase])
         if os.path.exists(purchase_path):
             df.to_csv(purchase_path, mode='a', header=False, index=False)
         else:
             df.to_csv(purchase_path, index=False)
 
-        # Auto-update inventory
-        inventory_path = os.path.join(DATA_PATH, "inventory.csv")
-        if os.path.exists(inventory_path):
-            inv_df = pd.read_csv(inventory_path)
+        # Update shared inventory
+        if os.path.exists(INVENTORY_PATH):
+            inv_df = pd.read_csv(INVENTORY_PATH)
             match = inv_df[inv_df["Barcode"] == barcode]
             if not match.empty:
-                # Update quantity
                 idx = match.index[0]
                 inv_df.at[idx, "Quantity"] += quantity
             else:
@@ -161,11 +161,10 @@ elif section == "Purchases":
                 "Quantity": quantity,
                 "Note": note
             }])
+        inv_df.to_csv(INVENTORY_PATH, index=False)
+        st.success("✅ Purchase saved & inventory updated!")
 
-        inv_df.to_csv(inventory_path, index=False)
-        st.success("✅ Purchase & inventory updated!")
-
-    purchase_path = os.path.join(DATA_PATH, "purchases.csv")
+    purchase_path = os.path.join(TODAY_PATH, "purchases.csv")
     if os.path.exists(purchase_path):
         df_purchase = pd.read_csv(purchase_path)
         st.dataframe(df_purchase, use_container_width=True)
