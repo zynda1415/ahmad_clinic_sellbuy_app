@@ -23,12 +23,12 @@ if not st.session_state.authenticated:
     login = st.button("Login")
     if login and pwd == PASSWORD:
         st.session_state.authenticated = True
-        st.experimental_rerun()  # ✅ Force reload after successful login
+        st.experimental_rerun()
     elif login:
         st.error("Wrong password")
     st.stop()
 
-# ✅ MAIN APP AFTER LOGIN
+# ✅ MAIN APP
 st.sidebar.title("📁 Menu")
 section = st.sidebar.radio("Go to", ["Dashboard", "Sales", "Purchases", "Sales Returns", "Purchase Returns"])
 st.title(f"📋 {section}")
@@ -124,13 +124,46 @@ elif section == "Purchases":
             "Total": total,
             "Note": note
         }
+
+        # Save to purchases.csv
         purchase_path = os.path.join(DATA_PATH, "purchases.csv")
         df = pd.DataFrame([purchase])
         if os.path.exists(purchase_path):
             df.to_csv(purchase_path, mode='a', header=False, index=False)
         else:
             df.to_csv(purchase_path, index=False)
-        st.success("✅ Purchase saved successfully!")
+
+        # Auto-update inventory
+        inventory_path = os.path.join(DATA_PATH, "inventory.csv")
+        if os.path.exists(inventory_path):
+            inv_df = pd.read_csv(inventory_path)
+            match = inv_df[inv_df["Barcode"] == barcode]
+            if not match.empty:
+                # Update quantity
+                idx = match.index[0]
+                inv_df.at[idx, "Quantity"] += quantity
+            else:
+                new_row = pd.DataFrame([{
+                    "Name": item_name,
+                    "Barcode": barcode,
+                    "Buy Price": unit_price,
+                    "Sell Price": unit_price,
+                    "Quantity": quantity,
+                    "Note": note
+                }])
+                inv_df = pd.concat([inv_df, new_row], ignore_index=True)
+        else:
+            inv_df = pd.DataFrame([{
+                "Name": item_name,
+                "Barcode": barcode,
+                "Buy Price": unit_price,
+                "Sell Price": unit_price,
+                "Quantity": quantity,
+                "Note": note
+            }])
+
+        inv_df.to_csv(inventory_path, index=False)
+        st.success("✅ Purchase & inventory updated!")
 
     purchase_path = os.path.join(DATA_PATH, "purchases.csv")
     if os.path.exists(purchase_path):
