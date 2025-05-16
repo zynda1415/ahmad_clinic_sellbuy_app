@@ -21,13 +21,12 @@ if not st.session_state.authenticated:
     st.title("🔐 Clinic POS Login")
     pwd = st.text_input("Enter password", type="password")
     login = st.button("Login")
-    if login:
-        if pwd == PASSWORD:
-            st.session_state.authenticated = True
-            st.success("Login successful! Please wait...")
-        else:
-            st.error("Wrong password")
-    st.stop()  # Block app if not authenticated
+    if login and pwd == PASSWORD:
+        st.session_state.authenticated = True
+        st.experimental_rerun()  # ✅ Force reload after successful login
+    elif login:
+        st.error("Wrong password")
+    st.stop()
 
 # ✅ MAIN APP AFTER LOGIN
 st.sidebar.title("📁 Menu")
@@ -43,7 +42,7 @@ if section == "Dashboard":
     col4.metric("↪️ Purchase Return", "120", "↓ 0.2%")
     style_metric_cards()
 
-# --- SALES ---
+# --- SALES PAGE ---
 elif section == "Sales":
     st.subheader("📸 Sell Item Manually")
     image_data = st.camera_input("📷 Optional: Take a picture of the barcode")
@@ -101,7 +100,7 @@ elif section == "Sales":
     else:
         st.info("No sales recorded today.")
 
-# --- PURCHASES ---
+# --- PURCHASES PAGE ---
 elif section == "Purchases":
     st.subheader("🧾 Add Purchase Record")
     with st.form("purchase_form"):
