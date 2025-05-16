@@ -31,7 +31,7 @@ section = st.sidebar.radio("Go to", ["Dashboard", "Sales", "Purchases", "Sales R
 
 st.title(f"📋 {section}")
 
-# --- CONTENT HANDLER ---
+# --- DASHBOARD SECTION ---
 if section == "Dashboard":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("🛒 Sales", "33.6K", "↑ 4.2%")
@@ -40,35 +40,63 @@ if section == "Dashboard":
     col4.metric("↪️ Purchase Return", "120", "↓ 0.2%")
     style_metric_cards()
 
+# --- SALES SECTION ---
 elif section == "Sales":
     st.subheader("🧾 Sales Transactions")
-    data = {
-        "Reference": ["SA_001", "SA_002"],
-        "Customer": ["Ali", "Sara"],
-        "Total": [200.0, 320.5],
-        "Status": ["Completed", "Pending"],
-        "Paid": [200.0, 0],
-        "Due": [0, 320.5],
-        "Payment Status": ["Paid", "Unpaid"]
-    }
-    st.dataframe(pd.DataFrame(data), use_container_width=True)
 
+    # --- Add Sale Form ---
+    with st.expander("➕ Add New Sale"):
+        with st.form("add_sale_form"):
+            customer = st.text_input("Customer Name", value="walk-in")
+            barcode = st.text_input("Item Barcode")
+            item_name = st.text_input("Item Name")
+            quantity = st.number_input("Quantity", min_value=1, value=1)
+            price = st.number_input("Price per Item", min_value=0.0)
+            paid = st.number_input("Amount Paid", min_value=0.0)
+            submit_sale = st.form_submit_button("💾 Save Sale")
+
+        if submit_sale:
+            total = quantity * price
+            due = total - paid
+            sale = {
+                "Date": date.today().isoformat(),
+                "Customer": customer,
+                "Barcode": barcode,
+                "Item Name": item_name,
+                "Quantity": quantity,
+                "Price": price,
+                "Total": total,
+                "Paid": paid,
+                "Due": due,
+                "Payment Status": "Paid" if due <= 0 else "Unpaid"
+            }
+            sales_path = os.path.join(DATA_PATH, "sales.csv")
+            df = pd.DataFrame([sale])
+            if os.path.exists(sales_path):
+                df.to_csv(sales_path, mode='a', header=False, index=False)
+            else:
+                df.to_csv(sales_path, index=False)
+            st.success("✅ Sale saved successfully!")
+
+    # --- Show Sales Table ---
+    sales_path = os.path.join(DATA_PATH, "sales.csv")
+    if os.path.exists(sales_path):
+        df_sales = pd.read_csv(sales_path)
+        st.dataframe(df_sales, use_container_width=True)
+    else:
+        st.info("No sales recorded today.")
+
+# --- PURCHASES SECTION ---
 elif section == "Purchases":
     st.subheader("📥 Purchase Entries")
-    data = {
-        "Invoice": ["PU_001", "PU_002"],
-        "Seller": ["ABC Co", "XYZ Med"],
-        "Total": [1500.0, 950.0],
-        "Status": ["Received", "Pending"],
-        "Paid": [1000.0, 0],
-        "Due": [500.0, 950.0]
-    }
-    st.dataframe(pd.DataFrame(data), use_container_width=True)
+    st.info("Purchasing form coming next...")
 
+# --- SALES RETURN SECTION ---
 elif section == "Sales Returns":
     st.subheader("↩️ Sales Return Records")
     st.info("No return records yet.")
 
+# --- PURCHASE RETURN SECTION ---
 elif section == "Purchase Returns":
     st.subheader("↪️ Purchase Return Records")
     st.info("No return records yet.")
