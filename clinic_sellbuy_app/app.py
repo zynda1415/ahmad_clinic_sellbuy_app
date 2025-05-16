@@ -20,12 +20,14 @@ if "authenticated" not in st.session_state:
 if not st.session_state.authenticated:
     st.title("🔐 Clinic POS Login")
     pwd = st.text_input("Enter password", type="password")
-    if pwd == PASSWORD:
-        st.session_state.authenticated = True
-        st.success("Login successful!")
-        st.experimental_rerun()  # Force refresh to go to dashboard
-    else:
-        st.stop()
+    login = st.button("Login")
+    if login:
+        if pwd == PASSWORD:
+            st.session_state.authenticated = True
+            st.success("Login successful! Please wait...")
+        else:
+            st.error("Wrong password")
+    st.stop()  # Block app if not authenticated
 
 # ✅ MAIN APP AFTER LOGIN
 st.sidebar.title("📁 Menu")
