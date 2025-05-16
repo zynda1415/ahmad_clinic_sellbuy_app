@@ -1,15 +1,17 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import date, datetime
-import zipfile
+from datetime import date
+from streamlit_extras.metric_cards import style_metric_cards
 
 # --- SETTINGS ---
 PASSWORD = "clinic123"
-FOLDER_BASE = os.path.join("clinic_data", str(date.today()))
+DATA_PATH = os.path.join("clinic_data", str(date.today()))
+os.makedirs(DATA_PATH, exist_ok=True)
 
-# --- LOGIN ---
-st.title("🔐 Clinic Sell-Buy System")
+# --- LOGIN SCREEN ---
+st.set_page_config(page_title="Clinic POS", layout="wide")
+st.title("🔐 Clinic POS Login")
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -17,52 +19,33 @@ if not st.session_state.authenticated:
     pwd = st.text_input("Enter password", type="password")
     if pwd == PASSWORD:
         st.session_state.authenticated = True
-        st.success("Access granted.")
+        st.success("Login successful!")
     else:
         st.stop()
 
-# --- CREATE DAILY FOLDER ---
-os.makedirs(FOLDER_BASE, exist_ok=True)
+# --- DASHBOARD ---
+st.title("📊 Clinic Dashboard")
 
-# --- ITEM ENTRY ---
-st.header("📦 Add Item to Inventory")
+# Simulated stats
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("🛒 Sales", "33.6K", "↑ 4.2%")
+col2.metric("📦 Purchases", "3K", "↑ 1.1%")
+col3.metric("↩️ Sales Return", "429", "↓ 0.4%")
+col4.metric("↪️ Purchase Return", "120", "↓ 0.2%")
 
-with st.form("item_form"):
-    name = st.text_input("Item Name")
-    sell_price = st.number_input("Sell Price", min_value=0.0)
-    buy_price = st.number_input("Buy Price", min_value=0.0)
-    expire_date = st.date_input("Expire Date")
-    barcode = st.text_input("Barcode")
-    note = st.text_area("Note")
-    quantity = st.number_input("Stock Quantity", min_value=0, step=1)
-    submit = st.form_submit_button("💾 Save Item")
+style_metric_cards()
 
-if submit:
-    item = {
-        "Date": datetime.now().isoformat(timespec='seconds'),
-        "Name": name,
-        "Sell Price": sell_price,
-        "Buy Price": buy_price,
-        "Expire": expire_date.isoformat(),
-        "Barcode": barcode,
-        "Note": note,
-        "Quantity": quantity
-    }
-    df = pd.DataFrame([item])
-    file_path = os.path.join(FOLDER_BASE, "inventory.csv")
-    if os.path.exists(file_path):
-        df.to_csv(file_path, mode='a', header=False, index=False)
-    else:
-        df.to_csv(file_path, index=False)
-    st.success("Item saved successfully!")
+# Simulated data table
+st.subheader("🧾 Sales Transactions")
 
-# --- DOWNLOAD BUTTON ---
-st.markdown("### 📥 Download Today's Data")
-zip_path = f"{FOLDER_BASE}.zip"
-with zipfile.ZipFile(zip_path, "w") as zipf:
-    for root, _, files in os.walk(FOLDER_BASE):
-        for file in files:
-            zipf.write(os.path.join(root, file))
-
-with open(zip_path, "rb") as file:
-    st.download_button("Download ZIP", file, file_name=f"clinic_data_{date.today()}.zip")
+data = {
+    "Reference": ["SA_001", "SA_002", "SA_003"],
+    "Customer": ["walk-in", "Ali", "Sara"],
+    "Status": ["Completed", "Completed", "Pending"],
+    "Total": [120.5, 300.0, 89.99],
+    "Paid": [120.5, 300.0, 0],
+    "Due": [0, 0, 89.99],
+    "Payment Status": ["Paid", "Paid", "Unpaid"]
+}
+df = pd.DataFrame(data)
+st.dataframe(df, use_container_width=True)
