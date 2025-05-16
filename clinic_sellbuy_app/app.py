@@ -1,10 +1,12 @@
 import streamlit as st
 import pandas as pd
 import os
+import cv2
+import numpy as np
+from pyzbar.pyzbar import decode
 from datetime import date
-from PIL import Image
-import pytesseract
 from streamlit_extras.metric_cards import style_metric_cards
+from PIL import Image
 
 # --- SETTINGS ---
 PASSWORD = "clinic123"
@@ -28,7 +30,7 @@ if not st.session_state.authenticated:
         st.stop()
 
 else:
-    # ✅ APP AFTER LOGIN
+    # ✅ APP UI AFTER LOGIN
     st.sidebar.title("📁 Menu")
     section = st.sidebar.radio("Go to", ["Dashboard", "Sales", "Purchases", "Sales Returns", "Purchase Returns"])
     st.title(f"📋 {section}")
@@ -44,27 +46,35 @@ else:
 
     # --- SALES PAGE ---
     elif section == "Sales":
-        st.subheader("📸 Sell via Barcode Scan")
-        image = st.camera_input("📷 Scan item barcode")
+        st.subheader("📸 Sell via Barcode Photo")
+
         barcode_value = ""
+        image_data = st.camera_input("📷 Take a picture of the barcode")
+
+        if image_data is not None:
+            image = Image.open(image_data).convert("RGB")
+            opencv_image = np.array(image)
+            opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2BGR)
+
+            decoded_objects = decode(opencv_image)
+            if decoded_objects:
+                barcode_value = decoded_objects[0].data.decode("utf-8")
+                st.success(f"📦 Detected Barcode: `{barcode_value}`")
+            else:
+                st.warning("❌ No barcode detected. Try again with better lighting and closer focus.")
+
         item_name = ""
         price = 0.0
-
-        if image:
-            img = Image.open(image)
-            barcode_value = pytesseract.image_to_string(img).strip()
-            st.success(f"📦 Detected Barcode: `{barcode_value}`")
-
-            inventory_path = os.path.join(DATA_PATH, "inventory.csv")
-            if os.path.exists(inventory_path):
-                df_inventory = pd.read_csv(inventory_path)
-                match = df_inventory[df_inventory["Barcode"] == barcode_value]
-                if not match.empty:
-                    item_name = match.iloc[0]["Name"]
-                    price = float(match.iloc[0]["Sell Price"])
-                    st.info(f"🧾 Found item: **{item_name}** — ${price}")
-                else:
-                    st.warning("❌ Item not found in inventory")
+        inventory_path = os.path.join(DATA_PATH, "inventory.csv")
+        if barcode_value and os.path.exists(inventory_path):
+            df_inventory = pd.read_csv(inventory_path)
+            match = df_inventory[df_inventory["Barcode"] == barcode_value]
+            if not match.empty:
+                item_name = match.iloc[0]["Name"]
+                price = float(match.iloc[0]["Sell Price"])
+                st.info(f"🧾 Found item: **{item_name}** — ${price}")
+            else:
+                st.warning("❌ Barcode not found in inventory")
 
         with st.form("sale_form_scan"):
             customer = st.text_input("Customer Name", value="walk-in")
