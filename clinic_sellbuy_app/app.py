@@ -22,12 +22,11 @@ if "authenticated" not in st.session_state:
 if not st.session_state.authenticated:
     st.title("🔐 Clinic POS Login")
     pwd = st.text_input("Enter password", type="password")
-    login = st.button("Login")
-    if login and pwd == PASSWORD:
-        st.session_state.authenticated = True
-        st.success("✅ Login successful!")
-    elif login:
-        st.error("❌ Wrong password")
+    if st.button("Login"):
+        if pwd == PASSWORD:
+            st.session_state.authenticated = True
+        else:
+            st.error("❌ Wrong password")
     st.stop()
 
 # --- MAIN APP ---
